@@ -1,0 +1,89 @@
+Group Members:
+- Rushalle (email@example.com)
+
+Programming Language: Python
+
+Encryption/Decryption:
+client.py:
+# Encrypt message using hybrid encryption (AES for message, RSA for AES key)
+def encrypt_message(message, public_key):
+    try:
+        backend = default_backend()
+        # Generate a random AES key
+        aes_key = os.urandom(32)  # 32 bytes for AES-256
+        
+        # Encrypt the message using AES
+        iv = os.urandom(16)  # 16 bytes for AES IV
+        cipher = Cipher(algorithms.AES(aes_key), modes.CFB(iv), backend=backend)
+        encryptor = cipher.encryptor()
+        encrypted_data = encryptor.update(message.encode()) + encryptor.finalize()
+        
+        # Encrypt the AES key with RSA
+        encrypted_aes_key = public_key.encrypt(
+            aes_key,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None
+            )
+        )
+        
+        # Concatenate IV, encrypted AES key, and encrypted data
+        encrypted_message = iv + encrypted_aes_key + encrypted_data
+        return encrypted_message
+    except Exception as e:
+        print("Encryption failed:", e)
+        traceback.print_exc()  # Print traceback for detailed error information
+        return None
+
+Digital Signature:
+bank.py:
+# Sign data using bank's private key
+def sign(data):
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+client.py:
+# Sign data using client's private key
+def sign(data, private_key):
+    signature = private_key.sign(
+        data,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    return signature
+
+Hashing:
+client.py:
+def hash_credit_card_number(credit_card_number):
+    # Hash the credit card number using SHA-256
+    digest = hashes.Hash(hashes.SHA256())
+    digest.update(credit_card_number.encode())
+    hashed_credit_card_number = digest.finalize()
+    # Convert the hashed value to a hexadecimal string
+    hashed_credit_card_number_hex = hashed_credit_card_number.hex()
+    return hashed_credit_card_number_hex
+
+Code Testing on remote.cs.binghamton.edu:
+- Yes
+
+Execution Instructions:
+make bank
+make server
+make client
+
+python bank.py
+python server.py
+python client.py
+
+
